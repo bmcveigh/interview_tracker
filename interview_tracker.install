@@ -1,0 +1,105 @@
+<?php
+
+/**
+ * @file
+ * Contains the schema and status table data for the interview_tracker module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+ function interview_tracker_schema() {
+  $schema['interview_tracker'] = array(
+    'description' => 'TODO: please describe this table!',
+    'fields' => array(
+      'id' => array(
+        'description' => 'The PK',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'position' => array(
+        'description' => 'The position applied for.',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
+      'company' => array(
+        'description' => 'The company name',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
+      'comment' => array(
+        'description' => 'Comments about how interview went.',
+        'type' => 'blob',
+        'not null' => FALSE,
+      ),
+      'status' => array(
+        'description' => 'The status of results.',
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+      'submitted' => array(
+        'description' => 'Date entry submitted as a Unix timestamp.',
+        'type' => 'int',
+        'length' => '32',
+        'not null' => FALSE,
+      ),
+    ),
+    'primary key' => array('id'),
+  );
+
+  $schema['interview_tracker_status'] = array(
+    'description' => 'TODO: please describe this table!',
+    'fields' => array(
+      'id' => array(
+        'description' => 'The PK',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'status_readable' => array(
+        'description' => 'The human-readable status of the interview.',
+        'type' => 'varchar',
+        'length' => '64',
+        'not null' => FALSE,
+      ),
+    ),
+    'primary key' => array('id'),
+  );
+
+  return $schema;
+}
+
+/**
+ * Implements hook_install().
+ */
+ function interview_tracker_install() {
+   $data = array(
+     array(
+       'id' => 0,
+       'status_readable' => t('Waiting for decision'),
+     ),
+     array(
+       'id' => 1,
+       'status_readable' => t('Offer Given'),
+     ),
+     array(
+       'id' => 2,
+       'status_readable' => t('No Offer Given'),
+     ),
+     array(
+       'id' => 3,
+       'status_readable' => t('Declined Offer'),
+     ),
+     array(
+       'id' => 4,
+       'status_readable' => t('Accepted Offer'),
+     ),
+   );
+
+   foreach ($data as $record) {
+     drupal_write_record('interview_tracker_status', $record);
+   }
+ }
