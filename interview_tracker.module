@@ -16,7 +16,7 @@ function interview_tracker_menu() {
     'title' => 'Track',
     'description' => 'Track the status of companies you interviewed with.',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('interview_tracker_page'),
+    'page arguments' => array('interview_tracker_form'),
     'access arguments' => array('view interview tracker'),
     'type' => MENU_NORMAL_ITEM,
   );
@@ -75,14 +75,14 @@ function interview_tracker_page($form, &$form_state) {
     );
   }
 
-  $form['position_applied'] = array(
+  $form['position'] = array(
     '#type' => 'textfield',
     '#title' => t('Position applied for'),
     '#description' => t('Enter the position you applied for.'),
     '#required' => TRUE,
   );
 
-  $form['company_name'] = array(
+  $form['company'] = array(
     '#type' => 'textfield',
     '#title' => t('Company Name'),
     '#description' => t('Enter the name of the company you applied to.'),
@@ -118,7 +118,36 @@ function interview_tracker_page($form, &$form_state) {
     '#value' => t('Add interview!'),
   );
 
+  $form['#submit'][] = 'interview_tracker_form_submit';
+
   return $form;
+}
+
+function interview_tracker_form_submit($form, &$form_state) {
+  $dirty_data = $form_state['values'];
+
+  $clean_data = array();
+
+  // Sanitize the data.
+  foreach ($dirty_data as $key => $value) {
+    $clean_data[$key] = check_plain($value);
+  }
+
+  $clean_data['submitted'] = time();
+
+  try {
+    $success = drupal_write_record('interview_tracker', $clean_data);
+
+    if ($success) {
+      drupal_set_message(t('Success!'));
+    }
+    else {
+      drupal_set_message(t('Error adding interview to database.'), 'error');
+    }
+  }
+  catch (Exception $e) {
+    watchdog('error', 'Interview Tracker Error: ' . $e, array(), WATCHDOG_ERROR);
+  }
 }
 
 function interview_tracker_get_status() {
