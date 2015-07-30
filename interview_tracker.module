@@ -13,10 +13,19 @@
  */
 function interview_tracker_menu() {
   $items['interview'] = array(
-    'title' => 'Track',
+    'title' => 'Track Interviews',
     'description' => 'Track the status of companies you interviewed with.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('interview_tracker_form'),
+    'access arguments' => array('view interview tracker'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['interview/%'] = array(
+    'title' => 'Track Interview',
+    'description' => 'View an interview by id.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('interview_tracker_update_form', 1),
     'access arguments' => array('view interview tracker'),
     'type' => MENU_NORMAL_ITEM,
   );
@@ -39,19 +48,14 @@ function interview_tracker_permission() {
 /**
  * This page contains a table of all the interviews.
  */
-function interview_tracker_page($form, &$form_state) {
-  // Write query and construct the table.
-  $query = db_select('interview_tracker', 'it');
-  $query->fields('it');
-  $query->innerJoin('interview_tracker_status', 'its', 'it.id=its.id');
-
-  // Execute the query.
-  $result = $query->execute()->fetchAll();
+function interview_tracker_form($form, &$form_state) {
+  $result = interview_tracker_get_interview();
 
   if (!empty($result)) {
     $rows = array();
 
     $header = array(
+      t('ID'),
       t('Position Applied'),
       t('Company'),
       t('Comment'),
@@ -61,6 +65,7 @@ function interview_tracker_page($form, &$form_state) {
 
     foreach ($result as $row) {
       $rows[] = array(
+        $row->id,
         $row->position,
         $row->company,
         $row->comment,
@@ -150,6 +155,101 @@ function interview_tracker_form_submit($form, &$form_state) {
   }
 }
 
+/**
+ * This is a form that will allow a user to view/edit an interview.
+ *
+ * @param int $id
+ *   The interview id.
+ */
+function interview_tracker_update_form($form, &$form_state, $id) {
+  // Sanitize the id just so it is not vulnerable to XSS attacks.
+  $clean_id = filter_xss($id);
+
+  // This should be an array of one result object coming from the database.
+  $interview = interview_tracker_get_interview($clean_id)[0];
+
+  $form['position'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Position'),
+    '#default_value' => $interview->position,
+  );
+
+  $form['company'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Company'),
+    '#default_value' => $interview->company,
+  );
+
+  $form['comment'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Comment'),
+    '#default_value' => $interview->comment,
+  );
+
+  // TODO: I know this may look repetitive; I want to get the functionality
+  // down first and then I will fix it later. Maybe I'll put this into a
+  // function so that it is reusable.
+  $result = interview_tracker_get_status();
+
+  $options = array();
+
+  foreach ($result as $row) {
+    $options[$row->id] = $row->status_readable;
+  }
+
+  $form['status'] = array(
+    '#type' => 'radios',
+    '#title' => t('What is the interview status?'),
+    '#description' => t('Select the status of the interview.'),
+    '#options' => $options,
+    '#default_value' => $id,
+    '#required' => TRUE,
+  );
+
+  $form['update'] = array(
+    '#type' => 'submit',
+    '#value' => t('Update'),
+  );
+
+  $form['#submit'][] = 'interview_tracker_update_form_submit';
+
+  return $form;
+}
+
+function interview_tracker_update_form_submit($form, &$form_state) {
+
+}
+
+/**
+ * Gets the list of interview statuses.
+ *
+ * @param int $id
+ *   The interview id.
+ *
+ * @return array
+ *   An array of row objects.
+ */
+function interview_tracker_get_interview($id = 0) {
+  $query = db_select('interview_tracker', 'it');
+  $query->leftJoin('interview_tracker_status', 'its', 'it.status=its.id');
+  $query->fields('it');
+  $query->fields('its');
+
+  if (is_numeric($id) && $id > 0) {
+    $result = $query->condition('id', $id, '=');
+  }
+
+  $result = $query->execute()->fetchAll();
+
+  return $result;
+}
+
+/**
+ * Gets the list of interview statuses.
+ *
+ * @return array
+ *   An array of row objects.
+ */
 function interview_tracker_get_status() {
   $query = db_select('interview_tracker_status', 'its')
     ->fields('its')
