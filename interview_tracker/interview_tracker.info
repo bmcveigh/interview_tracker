@@ -1,4 +1,0 @@
-name = Interview Tracker
-description = Keep track of the companies you interviewed with.
-core = 7.x
-package = Brian McVeigh
